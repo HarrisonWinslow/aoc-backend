@@ -97,6 +97,7 @@ app.get("/description/:year/:day", async (req, res) => {
 
       // AoC wraps puzzle text in <article> tags
       const articleHtml = $("article").first().html();
+      await redis.set(cacheKey, articleHtml);
 
       res.type("html").send(articleHtml);
     } catch (err) {
