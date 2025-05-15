@@ -96,10 +96,42 @@ app.get("/description/:year/:day", async (req, res) => {
       const $ = cheerio.load(html);
 
       // AoC wraps puzzle text in <article> tags
-      const articleHtml = $("article").first().html();
-      await redis.set(cacheKey, articleHtml);
+      const articles = $("article").map((_, el) => $(el).html()).get().join("<hr />");
+      await redis.set(cacheKey, articles);
+      res.type("html").send(articles);
+      
+    } catch (err) {
+      console.error("❌ Error fetching input:", err);
+      res.status(500).send("Server error");
+    }
+});
 
-      res.type("html").send(articleHtml);
+// Route to refresh AoC problem description
+app.get("/description/refresh/:year/:day", async (req, res) => {
+    const { year, day } = req.params;
+    const cacheKey = `aocDescription:${year}:${day}`
+  
+    try {
+  
+      const response = await fetch(`https://adventofcode.com/${year}/day/${day}`, {
+        headers: {
+          Cookie: `session=${SESSION}`,
+          "User-Agent": "aoc-frontend-runner by your@email.com",
+        },
+      });
+  
+      if (!response.ok) {
+        return res.status(response.status).send(`Error: ${response.statusText}`);
+      }
+  
+      const html = await response.text();
+      const $ = cheerio.load(html);
+
+      // AoC wraps puzzle text in <article> tags
+      const articles = $("article").map((_, el) => $(el).html()).get().join("<hr />");
+      await redis.set(cacheKey, articles);
+      res.type("html").send(articles);
+      
     } catch (err) {
       console.error("❌ Error fetching input:", err);
       res.status(500).send("Server error");
