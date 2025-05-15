@@ -5,11 +5,17 @@ import express from 'express';
 import fetch from 'node-fetch'; // you can omit this if using built-in fetch
 import dotenv from 'dotenv';
 import cors from 'cors';
+import { Redis } from "@upstash/redis";
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const SESSION = process.env.SESSION_COOKIE;
+
+const redis = new Redis({
+    url: process.env.UPSTASH_REDIS_REST_URL,
+    token: process.env.UPSTASH_REDIS_REST_TOKEN,
+  });
 
 if (!SESSION) {
   console.error("❌ Missing SESSION_COOKIE in .env file.");
@@ -21,18 +27,19 @@ app.use(cors());
 // Route to fetch AoC input
 app.get("/input/:year/:day", async (req, res) => {
   const { year, day } = req.params;
-  const cachePath = path.resolve(`./cache/${year}/${day}/input.txt`);
+  const cacheKey = `aocInput:${year}:${day}`
 
   try {
 
-    try {
-        const cachedData = await fs.readFile(cachePath, "utf8");
-        console.log(`Cache hit for ${year} day ${day}`);
-        return res.type("text").send(cachedData.trim());
-      } catch (err) {
-        if (err.code !== "ENOENT") throw err; // Re-throw if error not "file not found"
-        console.log(`Cache miss for ${year} day ${day}`);
-      }
+    // Try Redis cache
+    const cached = await redis.get(cacheKey);
+    if (cached) {
+      console.log("✅ Redis cache hit");
+      return res.type("text").send(cached);
+    }
+    else {
+        console.log("Redis cache miss");
+    }
 
     const response = await fetch(`https://adventofcode.com/${year}/day/${day}/input`, {
       headers: {
@@ -47,8 +54,7 @@ app.get("/input/:year/:day", async (req, res) => {
 
     const text = await response.text();
 
-    await fs.mkdir(path.dirname(cachePath), { recursive: true });
-    await fs.writeFile(cachePath, text);
+    await redis.set(cacheKey, text);
 
     res.type("text").send(text.trim());
   } catch (err) {
