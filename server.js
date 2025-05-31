@@ -164,6 +164,9 @@ app.get("/stars", async (req, res) => {
     const html = await response.text();
     const $ = cheerio.load(html);
 
+    console.log($.html()); // see what cheerio actually parsed
+
+
     const results = [];
 
     $("div.eventlist-event").each((_, el) => {
@@ -180,7 +183,7 @@ app.get("/stars", async (req, res) => {
 
     res.json(results);
   } catch (err) {
-    console.error("❌ Error fetching events:", err);
+    console.error("❌ Error fetching events:", err.stack || err);
     res.status(500).send("Error fetching events");
   }
 });
