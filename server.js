@@ -147,6 +147,8 @@ app.get("/stars", async (req, res) => {
     const cached = await redis.get(cacheKey);
     if (cached) {
       console.log("✅ Cached stars from /events");
+      console.log("Type of cached:", typeof cached);
+      console.log("Cached content:", cached);
       return res.json(JSON.parse(cached));
     }
 
