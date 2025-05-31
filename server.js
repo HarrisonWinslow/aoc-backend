@@ -13,6 +13,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const SESSION = process.env.SESSION_COOKIE;
 
+//redis object
 const redis = new Redis({
     url: process.env.UPSTASH_REDIS_REST_URL,
     token: process.env.UPSTASH_REDIS_REST_TOKEN,
@@ -136,6 +137,52 @@ app.get("/description/refresh/:year/:day", async (req, res) => {
       console.error("❌ Error fetching input:", err);
       res.status(500).send("Server error");
     }
+});
+
+//gets all the stars per year
+app.get("/stars", async (req, res) => {
+  const cacheKey = `aocStars:allYears`;
+
+  try {
+    const cached = await redis.get(cacheKey);
+    if (cached) {
+      console.log("✅ Cached stars from /events");
+      return res.json(JSON.parse(cached));
+    }
+
+    const response = await fetch("https://adventofcode.com/events", {
+      headers: {
+        Cookie: `session=${SESSION}`,
+        "User-Agent": "aoc-frontend-runner by you@example.com",
+      },
+    });
+
+    if (!response.ok) {
+      return res.status(response.status).send("Error fetching events page");
+    }
+
+    const html = await response.text();
+    const $ = cheerio.load(html);
+
+    const results = [];
+
+    $("div.eventlist-event").each((_, el) => {
+      const yearText = $(el).find("a").text(); // e.g., "[2023]"
+      const starsText = $(el).find("span.star-count").text(); // e.g., "★ 42"
+
+      const year = parseInt(yearText.match(/\d+/)[0], 10);
+      const stars = parseInt(starsText.match(/\d+/)?.[0] || "0", 10);
+
+      results.push({ year, stars });
+    });
+
+    await redis.set(cacheKey, JSON.stringify(results));
+
+    res.json(results);
+  } catch (err) {
+    console.error("❌ Error fetching events:", err);
+    res.status(500).send("Error fetching events");
+  }
 });
 
 // Start the server
