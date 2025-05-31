@@ -149,7 +149,7 @@ app.get("/stars", async (req, res) => {
       console.log("✅ Cached stars from /events");
       console.log("Type of cached:", typeof cached);
       console.log("Cached content:", cached);
-      return res.json(JSON.parse(cached));
+      return res.json(cached);
     }
 
     const response = await fetch("https://adventofcode.com/events", {
