@@ -202,7 +202,7 @@ app.get("/stars/:year", async (req, res) => {
       return res.json(cached);
     }
 
-    const response = await fetch("https://adventofcode.com/events", {
+    const response = await fetch(`https://adventofcode.com/${year}`, {
       headers: {
         Cookie: `session=${SESSION}`,
         "User-Agent": "aoc-frontend-runner by you@example.com",
