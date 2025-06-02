@@ -221,7 +221,7 @@ app.get("/stars/:year", async (req, res) => {
 
     const dayResults = [];
 
-    $("div.calendar").each((_, el) => {
+    $("div.calendar a").each((_, el) => {
       const ariaLabel = $(el).attr('aria-label'); // e.g., "Day 1, two stars"
       console.log(ariaLabel);
 
