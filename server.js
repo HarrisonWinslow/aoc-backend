@@ -223,6 +223,7 @@ app.get("/stars/:year", async (req, res) => {
 
     $("div.calendar").each((_, el) => {
       const ariaLabel = $(el).attr('aria-label'); // e.g., "Day 1, two stars"
+      console.log(ariaLabel);
 
       if(ariaLabel.includes(','))
       {
@@ -249,6 +250,7 @@ app.get("/stars/:year", async (req, res) => {
       
     });
 
+    console.log(dayResults);
     await redis.set(cacheKey, JSON.stringify(dayResults));
 
     res.json(dayResults);
