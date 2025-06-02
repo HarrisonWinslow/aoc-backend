@@ -166,7 +166,7 @@ app.get("/stars", async (req, res) => {
     const html = await response.text();
     const $ = cheerio.load(html);
 
-    console.log($.html()); // see what cheerio actually parsed
+    // console.log($.html()); // see what cheerio actually parsed
 
 
     const results = [];
@@ -216,38 +216,31 @@ app.get("/stars/:year", async (req, res) => {
     const html = await response.text();
     const $ = cheerio.load(html);
 
-    console.log($.html()); // see what cheerio actually parsed
+    // console.log($.html()); // see what cheerio actually parsed
 
 
     const dayResults = [];
 
-    $("div.calendar a").each((_, el) => {
-      const ariaLabel = $(el).attr('aria-label'); // e.g., "Day 1, two stars"
-      console.log(ariaLabel);
+    const anchors = $("div.calendar a");
+    console.log("Found anchors:", anchors.length);
+    console.log(anchors.toArray().map(el => $.html(el)));
 
-      if(ariaLabel.includes(','))
-      {
-        dayResults.push({
-          day: ariaLabel.substring(4),
-          numStars: 0,
-        });
-      }
-      else {
-        let stars = 1;
-        if(ariaLabel.includes('two')) {
-          stars = 2;
-        }
-        let dayNum = parseInt(ariaLabel.substring(5, 6), 10);
-        if(ariaLabel.indexOf(',') === 6){ //or, in other words, if the day is a two-digit number
-          dayNum = parseInt(ariaLabel.substring(5, 7), 10);
-        }
+    $("div.calendar a").each((_, el) => {
+      console.log($.html(el));
+      const ariaLabel = $(el).attr('aria-label'); // e.g., "Day 10, two stars"
+
+      const dayMatch = ariaLabel.match(/Day (\d{1,2})/);
+      const starMatch = ariaLabel.match(/(one|two) star/);
+
+      const dayNum = dayMatch ? parseInt(dayMatch[1], 10) : null;
+      const numStars = starMatch ? (starMatch[1] === 'two' ? 2 : 1) : 0;
+
+      if (dayNum !== null) {
         dayResults.push({
           day: dayNum,
-          numStars: stars,
+          numStars: numStars,
         });
       }
-
-      
     });
 
     console.log(dayResults);
