@@ -192,12 +192,13 @@ app.get("/stars", async (req, res) => {
 
 //given a year, gets all the stars per day
 app.get("/stars/:year", async (req, res) => {
+  const { year } = req.params;
   const cacheKey = `aocStars:year${year}`;
 
   try {
     const cached = await redis.get(cacheKey);
     if (cached) {
-      console.log("✅ Cached stars from /events");
+      console.log("✅ Cached stars from /stars/year");
       return res.json(cached);
     }
 
