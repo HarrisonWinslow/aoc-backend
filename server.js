@@ -147,8 +147,8 @@ app.get("/stars", async (req, res) => {
     const cached = await redis.get(cacheKey);
     if (cached) {
       console.log("✅ Cached stars from /events");
-      console.log("Type of cached:", typeof cached);
-      console.log("Cached content:", cached);
+      // console.log("Type of cached:", typeof cached);
+      // console.log("Cached content:", cached);
       return res.json(cached);
     }
 
@@ -186,6 +186,73 @@ app.get("/stars", async (req, res) => {
     res.json(results);
   } catch (err) {
     console.error("❌ Error fetching events:", err.stack || err);
+    res.status(500).send("Error fetching events");
+  }
+});
+
+//given a year, gets all the stars per day
+app.get("/stars/:year", async (req, res) => {
+  const cacheKey = `aocStars:year${year}`;
+
+  try {
+    const cached = await redis.get(cacheKey);
+    if (cached) {
+      console.log("✅ Cached stars from /events");
+      return res.json(cached);
+    }
+
+    const response = await fetch("https://adventofcode.com/events", {
+      headers: {
+        Cookie: `session=${SESSION}`,
+        "User-Agent": "aoc-frontend-runner by you@example.com",
+      },
+    });
+
+    if (!response.ok) {
+      return res.status(response.status).send("Error fetching events page");
+    }
+
+    const html = await response.text();
+    const $ = cheerio.load(html);
+
+    console.log($.html()); // see what cheerio actually parsed
+
+
+    const dayResults = [];
+
+    $("div.calendar").each((_, el) => {
+      const ariaLabel = $(el).attr('aria-label'); // e.g., "Day 1, two stars"
+
+      if(ariaLabel.includes(','))
+      {
+        dayResults.push({
+          day: ariaLabel.substring(4),
+          numStars: 0,
+        });
+      }
+      else {
+        let stars = 1;
+        if(ariaLabel.includes('two')) {
+          stars = 2;
+        }
+        let dayNum = parseInt(ariaLabel.substring(5, 6), 10);
+        if(ariaLabel.indexOf(',') === 6){ //or, in other words, if the day is a two-digit number
+          dayNum = parseInt(ariaLabel.substring(5, 7), 10);
+        }
+        dayResults.push({
+          day: dayNum,
+          numStars: stars,
+        });
+      }
+
+      
+    });
+
+    await redis.set(cacheKey, JSON.stringify(dayResults));
+
+    res.json(dayResults);
+  } catch (err) {
+    console.error("❌ Error fetching calendar:", err.stack || err);
     res.status(500).send("Error fetching events");
   }
 });
